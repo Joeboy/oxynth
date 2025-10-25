@@ -67,8 +67,9 @@ async fn main(_spawner: Spawner) {
     let (mut back_buffer, mut front_buffer) = dma_buffer.split_at_mut(BUFFER_SIZE);
 
     // start pio state machine
-    let mut fade_value: i32 = 0;
-    let mut phase: i32 = 0;
+    let mut phase: u32 = 0;
+    const FREQ: u32 = 440;
+    const PHASE_INC: u32 = (FREQ * 0x10000) / SAMPLE_RATE; // 16-bit phase accumulator
 
     info!("Starting audio loop");
     let mut led_status = false;
@@ -79,34 +80,22 @@ async fn main(_spawner: Spawner) {
             led.set_low();
         }
         led_status = !led_status;
-        // trigger transfer of front buffer data to the pio fifo
-        // but don't await the returned future, yet
+
         let dma_future = i2s.write(front_buffer);
 
-        // // fade in audio when bootsel is pressed
-        // let fade_target = if fade_input.is_low() {
-        //     i32::MAX
-        // } else {
-        //     65535 * 100
-        // };
-        let fade_target: i32 = i32::MAX;// 65535 * 100;
-
-        // fill back buffer with fresh audio samples before awaiting the dma future
+        // fill back buffer with a 440Hz square wave
         for s in back_buffer.iter_mut() {
-            // exponential approach of fade_value => fade_target
-            fade_value += (fade_target - fade_value) >> 14;
-            // generate triangle wave with amplitude and frequency based on fade value
-            phase = (phase + (fade_value >> 22)) & 0xffff;
-            let triangle_sample = (phase as i16 as i32).abs() - 16384;
-            let sample = (triangle_sample * (fade_value >> 15)) >> 16;
+            phase = (phase + PHASE_INC) & 0xffff;
+            let sample = if phase < 0x8000 {
+                0x7fff // high
+            } else {
+                0x8001 // low
+            };
             // duplicate mono sample into lower and upper half of dma word
             *s = (sample as u16 as u32) * 0x10001;
         }
 
-        // now await the dma future. once the dma finishes, the next buffer needs to be queued
-        // within DMA_DEPTH / SAMPLE_RATE = 8 / 48000 seconds = 166us
         dma_future.await;
         mem::swap(&mut back_buffer, &mut front_buffer);
-        // info!("end of llop")
     }
 }
