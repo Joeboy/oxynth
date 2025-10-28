@@ -5,6 +5,8 @@ mod audio_out;
 mod synth;
 
 use audio_out::audio_task;
+use synth::{MIDI_PRODUCER, MidiEvent as SynthMidiEvent, init_midi_queue};
+
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
@@ -12,8 +14,8 @@ use embassy_rp::gpio::{Level, Output};
 use embassy_rp::peripherals::USB;
 use embassy_usb::driver::host::DeviceEvent::Connected;
 use embassy_usb::driver::host::UsbHostDriver;
-use embassy_usb::handlers::UsbHostHandler;
-use embassy_usb::handlers::midi::MidiHandler;
+use embassy_usb::handlers::midi::{MidiEvent as UsbMidiEvent, MidiHandler};
+use embassy_usb::handlers::{HandlerEvent, UsbHostHandler};
 use embassy_usb::host::UsbHostBusExt;
 use {defmt_rtt as _, panic_probe as _};
 
@@ -27,6 +29,10 @@ async fn main(spawner: Spawner) {
     info!("Audio out example");
     let mut led = Output::new(p.PIN_25, Level::Low);
     led.set_high();
+
+    // Initialize the MIDI queue and split producer/consumer once at startup
+    // before spawning tasks that will use it (audio task reads consumer).
+    init_midi_queue();
 
     spawner.spawn(
         audio_task(
@@ -55,6 +61,33 @@ async fn main(spawner: Spawner) {
 
     loop {
         let result = midi_device.wait_for_event().await;
-        debug!("{}", result);
+        debug!("{:?}", result);
+
+        match result {
+            Ok(HandlerEvent::HandlerEvent(UsbMidiEvent::MidiPacket(pkt))) => {
+                let bytes: [u8; 4] = pkt.data;
+                let status = bytes[1];
+                let data1 = bytes[2];
+                let data2 = bytes[3];
+
+                unsafe {
+                    let prod_ptr = &raw mut MIDI_PRODUCER;
+                    let prod_opt: &mut Option<
+                        heapless::spsc::Producer<'static, SynthMidiEvent, 32>,
+                    > = &mut *prod_ptr;
+                    if let Some(prod) = prod_opt.as_mut() {
+                        let _ = prod.enqueue(SynthMidiEvent {
+                            status,
+                            data1,
+                            data2,
+                        });
+                    }
+                }
+            }
+            Ok(_) => {}
+            Err(e) => {
+                defmt::warn!("MIDI wait error: {:?}", e);
+            }
+        }
     }
 }
