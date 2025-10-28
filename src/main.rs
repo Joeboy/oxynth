@@ -2,6 +2,7 @@
 #![no_main]
 
 mod audio_out;
+mod synth;
 
 use audio_out::audio_task;
 use defmt::*;
