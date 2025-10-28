@@ -5,7 +5,8 @@ mod audio_out;
 mod synth;
 
 use audio_out::audio_task;
-use synth::{MIDI_PRODUCER, MidiEvent as SynthMidiEvent, init_midi_queue};
+use heapless::spsc::Queue;
+use synth::{MIDI_QUEUE, MidiEvent as SynthMidiEvent};
 
 use defmt::*;
 use embassy_executor::Spawner;
@@ -31,12 +32,14 @@ async fn main(spawner: Spawner) {
     led.set_high();
 
     // Initialize the MIDI queue and split producer/consumer once at startup
-    // before spawning tasks that will use it (audio task reads consumer).
-    init_midi_queue();
+    // before spawning tasks. Move the consumer into the audio task and keep
+    // the producer here to send incoming USB MIDI events.
+    let queue = MIDI_QUEUE.init(Queue::new());
+    let (mut prod, cons) = queue.split();
 
     spawner.spawn(
         audio_task(
-            p.PIO0, p.DMA_CH0, p.DMA_CH1, p.DMA_CH2, p.PIN_18, p.PIN_19, p.PIN_20,
+            p.PIO0, p.DMA_CH0, p.DMA_CH1, p.DMA_CH2, p.PIN_18, p.PIN_19, p.PIN_20, cons,
         )
         .unwrap(),
     );
@@ -70,19 +73,8 @@ async fn main(spawner: Spawner) {
                 let data1 = bytes[2];
                 let data2 = bytes[3];
 
-                unsafe {
-                    let prod_ptr = &raw mut MIDI_PRODUCER;
-                    let prod_opt: &mut Option<
-                        heapless::spsc::Producer<'static, SynthMidiEvent, 32>,
-                    > = &mut *prod_ptr;
-                    if let Some(prod) = prod_opt.as_mut() {
-                        let _ = prod.enqueue(SynthMidiEvent {
-                            status,
-                            data1,
-                            data2,
-                        });
-                    }
-                }
+                // Enqueue via the producer we created above in main.
+                let _ = prod.enqueue(SynthMidiEvent { status, data1, data2 });
             }
             Ok(_) => {}
             Err(e) => {
