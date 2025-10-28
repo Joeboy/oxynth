@@ -6,8 +6,19 @@ mod audio_out;
 use audio_out::audio_task;
 use defmt::*;
 use embassy_executor::Spawner;
+use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
+use embassy_rp::peripherals::USB;
+use embassy_usb::driver::host::DeviceEvent::Connected;
+use embassy_usb::driver::host::UsbHostDriver;
+use embassy_usb::handlers::UsbHostHandler;
+use embassy_usb::handlers::midi::MidiHandler;
+use embassy_usb::host::UsbHostBusExt;
 use {defmt_rtt as _, panic_probe as _};
+
+bind_interrupts!(struct Irqs {
+    USBCTRL_IRQ => embassy_rp::usb::host::InterruptHandler<USB>;
+});
 
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
@@ -23,5 +34,26 @@ async fn main(spawner: Spawner) {
         .unwrap(),
     );
 
-    info!("Done");
+    // Create the driver, from the HAL.
+    let mut usbhost = embassy_rp::usb::host::Driver::new(*p.USB, Irqs);
+
+    debug!("Detecting device");
+    let speed = loop {
+        match usbhost.wait_for_device_event().await {
+            Connected(speed) => break speed,
+            _ => {}
+        }
+    };
+
+    println!("Found device with speed = {:?}", speed);
+
+    let enum_info = usbhost.enumerate_root_bare(speed, 1).await.unwrap();
+    let mut midi_device = MidiHandler::try_register(&usbhost, &enum_info)
+        .await
+        .expect("Couldn't register MIDI device");
+
+    loop {
+        let result = midi_device.wait_for_event().await;
+        debug!("{}", result);
+    }
 }
