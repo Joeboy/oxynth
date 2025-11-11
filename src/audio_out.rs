@@ -1,4 +1,4 @@
-use crate::synth::Synth;
+use crate::synth::{MIDI_QUEUE_SIZE, Synth};
 use embassy_rp::Peri;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::PIN_18;
@@ -27,7 +27,7 @@ pub async fn audio_task(
     pin18: Peri<'static, PIN_18>,
     pin19: Peri<'static, PIN_19>,
     pin20: Peri<'static, PIN_20>,
-    midi_consumer: heapless::spsc::Consumer<'static, crate::synth::MidiEvent, { crate::synth::QUEUE_SIZE }>,
+    midi_consumer: heapless::spsc::Consumer<'static, crate::synth::MidiEvent, MIDI_QUEUE_SIZE>,
 ) {
     let Pio {
         mut common, sm0, ..
@@ -57,8 +57,12 @@ pub async fn audio_task(
     // Create synth instance that owns the MIDI consumer and render audio
     let mut synth = Synth::new(midi_consumer);
 
-    i2s.stream_ping_pong(dma_ch0, dma_ch1, &mut buf_a, &mut buf_b, move |buf: &mut [u32]| {
-        synth.process(buf)
-    })
+    i2s.stream_ping_pong(
+        dma_ch0,
+        dma_ch1,
+        &mut buf_a,
+        &mut buf_b,
+        move |buf: &mut [u32]| synth.process(buf),
+    )
     .await;
 }

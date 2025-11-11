@@ -8,7 +8,6 @@ use audio_out::audio_task;
 use heapless::spsc::Queue;
 use synth::{MIDI_QUEUE, MidiEvent as SynthMidiEvent};
 
-use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
@@ -18,7 +17,10 @@ use embassy_usb::driver::host::UsbHostDriver;
 use embassy_usb::handlers::midi::{MidiEvent as UsbMidiEvent, MidiHandler};
 use embassy_usb::handlers::{HandlerEvent, UsbHostHandler};
 use embassy_usb::host::UsbHostBusExt;
+use defmt::*;
 use {defmt_rtt as _, panic_probe as _};
+
+
 
 bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => embassy_rp::usb::host::InterruptHandler<USB>;
@@ -27,13 +29,11 @@ bind_interrupts!(struct Irqs {
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let p = embassy_rp::init(Default::default());
-    info!("Audio out example");
+    info!("Starting USB MIDI synth POC");
     let mut led = Output::new(p.PIN_25, Level::Low);
     led.set_high();
 
-    // Initialize the MIDI queue and split producer/consumer once at startup
-    // before spawning tasks. Move the consumer into the audio task and keep
-    // the producer here to send incoming USB MIDI events.
+    // MIDI queue producer and consumer
     let queue = MIDI_QUEUE.init(Queue::new());
     let (mut prod, cons) = queue.split();
 
@@ -44,10 +44,9 @@ async fn main(spawner: Spawner) {
         .unwrap(),
     );
 
-    // Create the driver, from the HAL.
     let mut usbhost = embassy_rp::usb::host::Driver::new(*p.USB, Irqs);
 
-    debug!("Detecting device");
+    info!("Detecting USB device...");
     let speed = loop {
         match usbhost.wait_for_device_event().await {
             Connected(speed) => break speed,
@@ -74,7 +73,11 @@ async fn main(spawner: Spawner) {
                 let data2 = bytes[3];
 
                 // Enqueue via the producer we created above in main.
-                let _ = prod.enqueue(SynthMidiEvent { status, data1, data2 });
+                let _ = prod.enqueue(SynthMidiEvent {
+                    status,
+                    data1,
+                    data2,
+                });
             }
             Ok(_) => {}
             Err(e) => {
