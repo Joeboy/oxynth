@@ -19,6 +19,8 @@ very basic synth, but if you want something custom you can modify
   something advanced or expert, look elsewhere!
 - I still need to finish fixing some stuff up and documenting it. These
   instructions should work OK already though
+- Some of the code is LLM-assisted. In particular the default `synth.rs` was
+  pretty much all spat out by an LLM.
 
 ## Hardware
 
