@@ -1,6 +1,6 @@
 [package]
 edition = "2024"
-name = "rusty-lv2-embedded"
+name = "oxynthesizer"
 version = "0.1.0"
 license = "MIT OR Apache-2.0"
 

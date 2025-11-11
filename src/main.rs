@@ -8,6 +8,7 @@ use audio_out::audio_task;
 use heapless::spsc::Queue;
 use synth::{MIDI_QUEUE, MidiEvent as SynthMidiEvent};
 
+use defmt::*;
 use embassy_executor::Spawner;
 use embassy_rp::bind_interrupts;
 use embassy_rp::gpio::{Level, Output};
@@ -17,10 +18,7 @@ use embassy_usb::driver::host::UsbHostDriver;
 use embassy_usb::handlers::midi::{MidiEvent as UsbMidiEvent, MidiHandler};
 use embassy_usb::handlers::{HandlerEvent, UsbHostHandler};
 use embassy_usb::host::UsbHostBusExt;
-use defmt::*;
 use {defmt_rtt as _, panic_probe as _};
-
-
 
 bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => embassy_rp::usb::host::InterruptHandler<USB>;
@@ -47,6 +45,8 @@ async fn main(spawner: Spawner) {
     let mut usbhost = embassy_rp::usb::host::Driver::new(*p.USB, Irqs);
 
     info!("Detecting USB device...");
+    // There seems to be an issue that like one time in ten the device isn't detected
+    // Should investigate and fix that at some point.
     let speed = loop {
         match usbhost.wait_for_device_event().await {
             Connected(speed) => break speed,
@@ -72,7 +72,6 @@ async fn main(spawner: Spawner) {
                 let data1 = bytes[2];
                 let data2 = bytes[3];
 
-                // Enqueue via the producer we created above in main.
                 let _ = prod.enqueue(SynthMidiEvent {
                     status,
                     data1,

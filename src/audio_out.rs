@@ -54,7 +54,6 @@ pub async fn audio_task(
         &program,
     );
 
-    // Create synth instance that owns the MIDI consumer and render audio
     let mut synth = Synth::new(midi_consumer);
 
     i2s.stream_ping_pong(

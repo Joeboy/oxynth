@@ -10,7 +10,6 @@ pub static MIDI_QUEUE: StaticCell<Queue<MidiEvent, MIDI_QUEUE_SIZE>> = StaticCel
 
 const SAMPLE_RATE: u32 = 48_000;
 
-
 #[derive(Copy, Clone)]
 pub struct MidiEvent {
     pub status: u8,
@@ -23,7 +22,6 @@ pub struct MidiEvent {
 fn pack_lr_16(l: i16, r: i16) -> u32 {
     ((l as u32 as u16 as u32) << 16) | ((r as u16) as u32)
 }
-
 
 #[inline]
 fn midi_note_to_freq(note: u8) -> f32 {
