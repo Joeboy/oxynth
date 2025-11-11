@@ -17,8 +17,6 @@ very basic synth, but if you want something custom you can modify
 - I'm fairly inexpert at electronics, Rust and audio synthesis, maybe this
   simple guide will be helpful for other inexperts. If you're looking for
   something advanced or expert, look elsewhere!
-- I still need to finish fixing some stuff up and documenting it. These
-  instructions should work OK already though
 - Some of the code is LLM-assisted. In particular the default `synth.rs` was
   pretty much all spat out by an LLM.
 
@@ -40,8 +38,8 @@ You'll need:
 You'll also need a bunch of other stuff like the breadboard, dupont wires,
 soldering iron + solder, a midi USB keyboard, USB and jack cables, headphones or
 an amp to plug it into... if we handwave all of that away, as well as delivery
-costs and the fact we're buying multiples, that gives us a cost of £8.66 per
-unit, for the main components anyway.
+costs and the fact we're bulk-buying, that gives us a cost of £8.66 per unit,
+for the main components anyway.
 
 ### Connect the DAC board
 
@@ -84,7 +82,9 @@ GND (pin 38) -> 0v
    USB _device_ via OTG, powered _from_ the Pico's USB socket.
 2. I'm not actually sure connecting VBUS and VSYS is wholly safe / recommended.
    All I can say is it seems to work here with no issues, and the Pico is a
-   pretty cheap device anyway.
+   pretty cheap device anyway. And
+   [this guy](https://www.youtube.com/watch?v=yIXa-6DRW-Y) seems to think it's
+   OK.
 
 That's the audio output stuff connected, but we'll also need a way to actually
 play it:
@@ -100,32 +100,42 @@ with yours too.
 This repo contains Rust software that reads from the USB MIDI keyboard and
 outputs notes via the PCM5102.
 
-The included [synth code](./src/synth.rs) is pretty boring. It reads a buffer of
+The default [synth code](./src/synth.rs) is pretty boring. It reads a buffer of
 incoming midi messages and outputs notes to an audio buffer. It should be pretty
 hackable if you want to make it do something more interesting.
 
-If you use a debug probe, in theory you should be able to just connect it up and
-do `cargo run`. If you do that it'll build with debug output, which will cause
-timing glitches. For "release mode", try `DEFMT_LOG=off cargo run --release`.
+At some point I'll provide a UF2 firmware file you can flash directly to the
+device. But for now you'll need to build the Rust code yourself before flashing
+the Pico.
 
-You'll also need to install [probe-rs](https://probe.rs), and the
-`thumbv8m.main-none-eabihf` target:
+So, you'll need
+[Rust and Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+if you don't have them already.
+
+and the `thumbv8m.main-none-eabihf` target:
 
 ```sh
 rustup target add thumbv8m.main-none-eabihf
 ```
 
-I may have forgotten things, in which case please file a ticket!
+I recommend using a
+[debug probe](https://www.raspberrypi.com/documentation/microcontrollers/debug-probe.html)
+to flash the device. Certainly if you plan on doing any firmware modification.
+Given which, you'll also want [probe-rs](https://probe.rs).
 
-At some point I'll get around to creating a UF2 file so you can flash the device
-without a debug probe.
+If you use a debug probe, in theory you should be able to just connect it up and
+do `cargo run` from the repo's root folder. If you do that it'll build with
+debug output, which will cause timing glitches. For "release mode", try
+`DEFMT_LOG=off cargo run --release`.
+
+I may well have forgotten things, in which case please file a github issue!
 
 Side note: A bit inconveniently, embassy-rs doesn't support host mode usb or
 gapless audio "out-of-the-box", so I had to
 [patch](https://github.com/Joeboy/embassy/tree/usb-mid-host-plus-pio-dma-ping-pong)
 it for those. Thanks to holly-hacker and dobrowolski-lukasz for doing the actual
 work. Fortunately it turns out it's easy to update the cargo deps to
-automatically use the patched branch, so I've done that.
+automatically use the patched branch, so I've done that now.
 
 ## The future / TODO
 
@@ -134,7 +144,7 @@ automatically use the patched branch, so I've done that.
 - Provide a UF2 flash file. So far I've been using a debug probe to flash the
   device, I guess people might want to flash it without building all the Rust
   stuff
-- Move audio synthesis onto separate CPU
+- Move audio task onto dedicated CPU core for realtime safety
 - Use MIDI controllers to modify synth sounds
 
 ### Longer term / maybe sometime / maybe never
@@ -145,3 +155,11 @@ automatically use the patched branch, so I've done that.
   - But, it'd be nice if there was an I2S module that did both audio input +
     output, maybe based on something like the TLV310AIC3104. I find it a bit
     surprising nobody seems to make one. Maybe I should try to make one.
+- I think, very theoretically, it could be possible to build static / no-std
+  [LV2](https://lv2plug.in/) binaries for `thumbv8m.main-none-eabihf` and run
+  them on the device. Maybe via [bFLT](https://github.com/uclinux-dev/elf2flt),
+  which would be simpler to deal with than ELF on the device side. It'd be cool
+  to be able to make hardware versions of all the thousands of open source LV2
+  pluginsl Maybe connecting them together in the device software, a bit like the
+  much beefier [MOD](https://mod.audio/) devices. But I'm not expecting this to
+  be easy, or necessarily even doable at all.
