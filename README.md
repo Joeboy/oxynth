@@ -97,21 +97,40 @@ with yours too.
 
 ## Software
 
-I should write some more detailed notes, but the repo for which this is the
-README contains Rust software that reads from the USB MIDI keyboard and outputs
-notes via the PCM5102.
+This repo contains Rust software that reads from the USB MIDI keyboard and
+outputs notes via the PCM5102.
 
-Unfortunately it needs a
-[patched version](https://github.com/Joeboy/embassy/tree/usb-mid-host-plus-pio-dma-ping-pong)
-of embassy-rs. I need to fix things up so it's a bit easier to get up and
-running, hopefully I'll get to that soon.
+The included [synth code](./src/synth.rs) is pretty boring. It reads a buffer of
+incoming midi messages and outputs notes to an audio buffer. It should be pretty
+hackable if you want to make it do something more interesting.
+
+If you use a debug probe, in theory you should be able to just connect it up and
+do `cargo run`. If you do that it'll build with debug output, which will cause
+timing glitches. For "release mode", try `DEFMT_LOG=off cargo run --release`.
+
+You'll also need to install [probe-rs](https://probe.rs), and the
+`thumbv8m.main-none-eabihf` target:
+
+```sh
+rustup target add thumbv8m.main-none-eabihf
+```
+
+I may have forgotten things, in which case please file a ticket!
+
+At some point I'll get around to creating a UF2 file so you can flash the device
+without a debug probe.
+
+Side note: A bit inconveniently, embassy-rs doesn't support host mode usb or
+gapless audio "out-of-the-box", so I had to
+[patch](https://github.com/Joeboy/embassy/tree/usb-mid-host-plus-pio-dma-ping-pong)
+it for those. Thanks to holly-hacker and dobrowolski-lukasz for doing the actual
+work. Fortunately it turns out it's easy to update the cargo deps to
+automatically use the patched branch, so I've done that.
 
 ## The future / TODO
 
 ### Short-term
 
-- As above, try to fix up cargo so it automatically uses the right repo / branch
-  for embassy-rs
 - Provide a UF2 flash file. So far I've been using a debug probe to flash the
   device, I guess people might want to flash it without building all the Rust
   stuff
