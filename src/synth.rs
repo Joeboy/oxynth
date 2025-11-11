@@ -10,6 +10,8 @@ pub static MIDI_QUEUE: StaticCell<Queue<MidiEvent, MIDI_QUEUE_SIZE>> = StaticCel
 
 const SAMPLE_RATE: u32 = 48_000;
 
+const N_VOICES: usize = 10;
+
 #[derive(Copy, Clone)]
 pub struct MidiEvent {
     pub status: u8,
@@ -186,9 +188,6 @@ impl Synth {
         ControlFlow::Continue(())
     }
 }
-
-// Number of voices
-const N_VOICES: usize = 5;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum EnvStage {
