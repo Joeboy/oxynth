@@ -144,7 +144,6 @@ automatically use the patched branch, so I've done that now.
 - Provide a UF2 flash file. So far I've been using a debug probe to flash the
   device, I guess people might want to flash it without building all the Rust
   stuff
-- Move audio task onto dedicated CPU core for realtime safety
 - Use MIDI controllers to modify synth sounds
 
 ### Longer term / maybe sometime / maybe never

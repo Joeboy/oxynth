@@ -3,29 +3,28 @@
 
 mod audio_out;
 mod synth;
+mod usb_midi_in;
 
 use audio_out::audio_task;
 use heapless::spsc::Queue;
-use synth::{MIDI_QUEUE, MidiEvent as SynthMidiEvent};
+use static_cell::StaticCell;
+use synth::MIDI_QUEUE;
+use usb_midi_in::usb_input_task;
 
 use defmt::*;
-use embassy_executor::Spawner;
-use embassy_rp::bind_interrupts;
+use embassy_executor::Executor;
 use embassy_rp::gpio::{Level, Output};
-use embassy_rp::peripherals::USB;
-use embassy_usb::driver::host::DeviceEvent::Connected;
-use embassy_usb::driver::host::UsbHostDriver;
-use embassy_usb::handlers::midi::{MidiEvent as UsbMidiEvent, MidiHandler};
-use embassy_usb::handlers::{HandlerEvent, UsbHostHandler};
-use embassy_usb::host::UsbHostBusExt;
+use embassy_rp::multicore::{Stack, spawn_core1};
 use {defmt_rtt as _, panic_probe as _};
 
-bind_interrupts!(struct Irqs {
-    USBCTRL_IRQ => embassy_rp::usb::host::InterruptHandler<USB>;
-});
+// NB if you start seeing mysterious crashes, it could be that core1's stack isn't big enough
+// for 2x BUFFER_SIZE u32 buffers + synth state etc.
+static mut CORE1_STACK: Stack<16384> = Stack::new();
+static EXECUTOR0: StaticCell<Executor> = StaticCell::new();
+static EXECUTOR1: StaticCell<Executor> = StaticCell::new();
 
-#[embassy_executor::main]
-async fn main(spawner: Spawner) {
+#[cortex_m_rt::entry]
+fn main() -> ! {
     let p = embassy_rp::init(Default::default());
     info!("Starting USB MIDI synth POC");
     let mut led = Output::new(p.PIN_25, Level::Low);
@@ -33,55 +32,23 @@ async fn main(spawner: Spawner) {
 
     // MIDI queue producer and consumer
     let queue = MIDI_QUEUE.init(Queue::new());
-    let (mut prod, cons) = queue.split();
+    let (prod, cons) = queue.split();
 
-    spawner.spawn(
-        audio_task(
-            p.PIO0, p.DMA_CH0, p.DMA_CH1, p.DMA_CH2, p.PIN_18, p.PIN_19, p.PIN_20, cons,
-        )
-        .unwrap(),
+    // Realtime audio processing goes on core 1
+    spawn_core1(
+        p.CORE1,
+        unsafe { &mut *core::ptr::addr_of_mut!(CORE1_STACK) },
+        move || {
+            let executor1 = EXECUTOR1.init(Executor::new());
+            executor1.run(|spawner| {
+                spawner.spawn(unwrap!(audio_task(
+                    p.PIO0, p.DMA_CH0, p.DMA_CH1, p.DMA_CH2, p.PIN_18, p.PIN_19, p.PIN_20, cons
+                )))
+            });
+        },
     );
 
-    let mut usbhost = embassy_rp::usb::host::Driver::new(*p.USB, Irqs);
-
-    info!("Detecting USB device...");
-    // There seems to be an issue that like one time in ten the device isn't detected
-    // Should investigate and fix that at some point.
-    let speed = loop {
-        match usbhost.wait_for_device_event().await {
-            Connected(speed) => break speed,
-            _ => {}
-        }
-    };
-
-    println!("Found device with speed = {:?}", speed);
-
-    let enum_info = usbhost.enumerate_root_bare(speed, 1).await.unwrap();
-    let mut midi_device = MidiHandler::try_register(&usbhost, &enum_info)
-        .await
-        .expect("Couldn't register MIDI device");
-
-    loop {
-        let result = midi_device.wait_for_event().await;
-        debug!("{:?}", result);
-
-        match result {
-            Ok(HandlerEvent::HandlerEvent(UsbMidiEvent::MidiPacket(pkt))) => {
-                let bytes: [u8; 4] = pkt.data;
-                let status = bytes[1];
-                let data1 = bytes[2];
-                let data2 = bytes[3];
-
-                let _ = prod.enqueue(SynthMidiEvent {
-                    status,
-                    data1,
-                    data2,
-                });
-            }
-            Ok(_) => {}
-            Err(e) => {
-                defmt::warn!("MIDI wait error: {:?}", e);
-            }
-        }
-    }
+    // Anything non-realtime (currently USB MIDI input) goes on core 0
+    let executor0 = EXECUTOR0.init(Executor::new());
+    executor0.run(|spawner| spawner.spawn(unwrap!(usb_input_task(p.USB, prod))));
 }

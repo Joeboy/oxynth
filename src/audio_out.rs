@@ -1,4 +1,5 @@
 use crate::synth::{MIDI_QUEUE_SIZE, Synth};
+use defmt::info;
 use embassy_rp::Peri;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::PIN_18;
@@ -29,6 +30,7 @@ pub async fn audio_task(
     pin20: Peri<'static, PIN_20>,
     midi_consumer: heapless::spsc::Consumer<'static, crate::synth::MidiEvent, MIDI_QUEUE_SIZE>,
 ) {
+    info!("Starting I2S audio output task");
     let Pio {
         mut common, sm0, ..
     } = Pio::new(pio0, Irqs);
