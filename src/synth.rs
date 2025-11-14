@@ -36,6 +36,11 @@ pub struct Synth {
     cons: heapless::spsc::Consumer<'static, MidiEvent, MIDI_QUEUE_SIZE>,
     voices: [Voice; N_VOICES],
     age_counter: u32,
+    // ADSR parameters (controllable via MIDI CC 21-24)
+    attack_time_s: f32,
+    decay_time_s: f32,
+    sustain_level: f32,
+    release_time_s: f32,
 }
 
 impl Synth {
@@ -44,16 +49,16 @@ impl Synth {
             cons,
             voices: [Voice::new(); N_VOICES],
             age_counter: 0,
+            // Default ADSR values (controllable via MIDI CC 21-24)
+            attack_time_s: 0.005,  // 5 ms (CC 21)
+            decay_time_s: 0.050,   // 50 ms (CC 22)
+            sustain_level: 0.2,    // 20% (CC 23)
+            release_time_s: 0.500, // 500 ms (CC 24)
         }
     }
     pub fn process(&mut self, buf: &mut [u32]) -> ControlFlow<(), ()> {
         // Polyphonic synth rendering
         const MAX_AMPLITUDE: i16 = 12000; // headroom
-        // ADSR parameters (seconds / level)
-        const ATTACK_TIME_S: f32 = 0.005; // 10 ms
-        const DECAY_TIME_S: f32 = 0.050; // 50 ms
-        const SUSTAIN_LEVEL: f32 = 0.2; // sustain as fraction of peak
-        const RELEASE_TIME_S: f32 = 0.500; // 100 ms
 
         // Drain MIDI events and update voice allocation
         while let Some(event) = self.cons.dequeue() {
@@ -63,6 +68,34 @@ impl Synth {
             );
             let status_nybble = event.status & 0xF0;
             match status_nybble {
+                0xB0 => {
+                    // Control Change
+                    let cc_num = event.data1;
+                    let cc_val = event.data2;
+                    match cc_num {
+                        22 => {
+                            // Attack time: map 0-127 to 0.001-2.0 seconds
+                            self.attack_time_s = 0.001 + (cc_val as f32 / 127.0) * 1.999;
+                            debug!("Attack time set to {} s", self.attack_time_s);
+                        }
+                        23 => {
+                            // Decay time: map 0-127 to 0.001-2.0 seconds
+                            self.decay_time_s = 0.001 + (cc_val as f32 / 127.0) * 1.999;
+                            debug!("Decay time set to {} s", self.decay_time_s);
+                        }
+                        24 => {
+                            // Sustain level: map 0-127 to 0.0-1.0
+                            self.sustain_level = cc_val as f32 / 127.0;
+                            debug!("Sustain level set to {}", self.sustain_level);
+                        }
+                        25 => {
+                            // Release time: map 0-127 to 0.001-3.0 seconds
+                            self.release_time_s = 0.001 + (cc_val as f32 / 127.0) * 2.999;
+                            debug!("Release time set to {} s", self.release_time_s);
+                        }
+                        _ => {}
+                    }
+                }
                 0x90 => {
                     // Note On (velocity 0 treated as Note Off)
                     if event.data2 > 0 {
@@ -77,9 +110,9 @@ impl Synth {
                                 freq,
                                 vel_amp,
                                 self.age_counter,
-                                ATTACK_TIME_S,
-                                DECAY_TIME_S,
-                                SUSTAIN_LEVEL,
+                                self.attack_time_s,
+                                self.decay_time_s,
+                                self.sustain_level,
                             );
                         } else {
                             // steal oldest voice (smallest age)
@@ -95,9 +128,9 @@ impl Synth {
                                     freq,
                                     vel_amp,
                                     self.age_counter,
-                                    ATTACK_TIME_S,
-                                    DECAY_TIME_S,
-                                    SUSTAIN_LEVEL,
+                                    self.attack_time_s,
+                                    self.decay_time_s,
+                                    self.sustain_level,
                                 );
                             }
                         }
@@ -106,7 +139,7 @@ impl Synth {
                         let note = event.data1;
                         for v in self.voices.iter_mut() {
                             if v.note == note && v.gate {
-                                v.note_off(RELEASE_TIME_S);
+                                v.note_off(self.release_time_s);
                             }
                         }
                     }
@@ -116,7 +149,7 @@ impl Synth {
                     let note = event.data1;
                     for v in self.voices.iter_mut() {
                         if v.note == note && v.gate {
-                            v.note_off(RELEASE_TIME_S);
+                            v.note_off(self.release_time_s);
                         }
                     }
                 }
