@@ -51,6 +51,9 @@ pub struct Synth {
     decay_time_s: f32,
     sustain_level: f32,
     release_time_s: f32,
+    // Filter parameters (controllable via MIDI CC 26-27)
+    filter_cutoff: f32,    // 0.0 to 1.0 (fraction of sample rate)
+    filter_resonance: f32, // 0.0 to 4.0
 }
 
 impl Synth {
@@ -66,6 +69,9 @@ impl Synth {
             decay_time_s: 0.050,   // 50 ms (CC 23)
             sustain_level: 0.2,    // 20% (CC 24)
             release_time_s: 0.500, // 500 ms (CC 25)
+            // Default filter values (controllable via MIDI CC 26-27)
+            filter_cutoff: 0.5,    // 50% of sample rate (CC 26)
+            filter_resonance: 0.5, // Low resonance (CC 27)
         }
     }
     pub fn process(&mut self, buf: &mut [u32]) -> ControlFlow<(), ()> {
@@ -121,6 +127,16 @@ impl Synth {
                             // Release time: map 0-127 to 0.001-3.0 seconds
                             self.release_time_s = 0.001 + (cc_val as f32 / 127.0) * 2.999;
                             debug!("Release time set to {} s", self.release_time_s);
+                        }
+                        26 => {
+                            // Filter cutoff: map 0-127 to 0.0-1.0 (fraction of sample rate)
+                            self.filter_cutoff = cc_val as f32 / 127.0;
+                            debug!("Filter cutoff set to {}", self.filter_cutoff);
+                        }
+                        27 => {
+                            // Filter resonance: map 0-127 to 0.0-4.0
+                            self.filter_resonance = (cc_val as f32 / 127.0) * 4.0;
+                            debug!("Filter resonance set to {}", self.filter_resonance);
                         }
                         _ => {}
                     }
@@ -242,11 +258,13 @@ impl Synth {
                             angle.sin()
                         }
                         Waveform::Square => {
-                            if v.phase < 0.5 { 1.0 } else { -1.0 }
+                            if v.phase < 0.5 {
+                                1.0
+                            } else {
+                                -1.0
+                            }
                         }
-                        Waveform::Sawtooth => {
-                            2.0 * v.phase - 1.0
-                        }
+                        Waveform::Sawtooth => 2.0 * v.phase - 1.0,
                         Waveform::Triangle => {
                             if v.phase < 0.5 {
                                 4.0 * v.phase - 1.0
@@ -255,7 +273,26 @@ impl Synth {
                             }
                         }
                     };
-                    mix += sample * v.env;
+
+                    // Apply resonant low-pass filter (simple 2-pole)
+                    // Calculate filter coefficients based on cutoff and resonance
+                    let cutoff_freq = self.filter_cutoff * 0.5; // Max at Nyquist
+                    let resonance = self.filter_resonance;
+
+                    // Chamberlain state-variable filter
+                    let f = (cutoff_freq * core::f32::consts::PI).min(1.5); // Frequency coefficient
+                    let q = 1.0 - resonance * 0.24; // Damping (lower = more resonance)
+                    let q_clamped = q.max(0.05); // Prevent complete instability
+
+                    let lowpass = v.filter_buf1 + f * v.filter_buf0;
+                    let highpass = sample - lowpass - q_clamped * v.filter_buf0;
+                    let bandpass = f * highpass + v.filter_buf0;
+
+                    v.filter_buf0 = bandpass;
+                    v.filter_buf1 = lowpass;
+
+                    let filtered = lowpass;
+                    mix += filtered * v.env;
                 }
             }
 
@@ -293,6 +330,9 @@ struct Voice {
     decay_inc: f32,
     sustain_level: f32,
     release_inc: f32,
+    // Filter state (simple 2-pole resonant low-pass)
+    filter_buf0: f32,
+    filter_buf1: f32,
 }
 
 impl Voice {
@@ -310,6 +350,8 @@ impl Voice {
             decay_inc: 0.0,
             sustain_level: 1.0,
             release_inc: 0.0,
+            filter_buf0: 0.0,
+            filter_buf1: 0.0,
         }
     }
 
