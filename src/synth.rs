@@ -19,6 +19,14 @@ pub struct MidiEvent {
     pub data2: u8,
 }
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum Waveform {
+    Sine,
+    Square,
+    Sawtooth,
+    Triangle,
+}
+
 // Pack left and right 16-bit samples into a single u32, as that's what the I2S DMA expects
 #[inline]
 fn pack_lr_16(l: i16, r: i16) -> u32 {
@@ -36,7 +44,9 @@ pub struct Synth {
     cons: heapless::spsc::Consumer<'static, MidiEvent, MIDI_QUEUE_SIZE>,
     voices: [Voice; N_VOICES],
     age_counter: u32,
-    // ADSR parameters (controllable via MIDI CC 21-24)
+    // Waveform (controllable via MIDI CC 21)
+    waveform: Waveform,
+    // ADSR parameters (controllable via MIDI CC 22-25)
     attack_time_s: f32,
     decay_time_s: f32,
     sustain_level: f32,
@@ -49,11 +59,13 @@ impl Synth {
             cons,
             voices: [Voice::new(); N_VOICES],
             age_counter: 0,
-            // Default ADSR values (controllable via MIDI CC 21-24)
-            attack_time_s: 0.005,  // 5 ms (CC 21)
-            decay_time_s: 0.050,   // 50 ms (CC 22)
-            sustain_level: 0.2,    // 20% (CC 23)
-            release_time_s: 0.500, // 500 ms (CC 24)
+            // Default waveform (controllable via MIDI CC 21)
+            waveform: Waveform::Sine,
+            // Default ADSR values (controllable via MIDI CC 22-25)
+            attack_time_s: 0.005,  // 5 ms (CC 22)
+            decay_time_s: 0.050,   // 50 ms (CC 23)
+            sustain_level: 0.2,    // 20% (CC 24)
+            release_time_s: 0.500, // 500 ms (CC 25)
         }
     }
     pub fn process(&mut self, buf: &mut [u32]) -> ControlFlow<(), ()> {
@@ -73,6 +85,23 @@ impl Synth {
                     let cc_num = event.data1;
                     let cc_val = event.data2;
                     match cc_num {
+                        21 => {
+                            // Waveform: divide 0-127 into 4 regions
+                            self.waveform = match cc_val {
+                                0..=31 => Waveform::Sine,
+                                32..=63 => Waveform::Square,
+                                64..=95 => Waveform::Sawtooth,
+                                96..=127 => Waveform::Triangle,
+                                _ => Waveform::Sine, // fallback
+                            };
+                            let waveform_name = match self.waveform {
+                                Waveform::Sine => "Sine",
+                                Waveform::Square => "Square",
+                                Waveform::Sawtooth => "Sawtooth",
+                                Waveform::Triangle => "Triangle",
+                            };
+                            debug!("Waveform set to {}", waveform_name);
+                        }
                         22 => {
                             // Attack time: map 0-127 to 0.001-2.0 seconds
                             self.attack_time_s = 0.001 + (cc_val as f32 / 127.0) * 1.999;
@@ -207,8 +236,26 @@ impl Synth {
                 }
 
                 if v.env > 0.0 {
-                    let angle = 2.0 * core::f32::consts::PI * v.phase;
-                    mix += angle.sin() * v.env;
+                    let sample = match self.waveform {
+                        Waveform::Sine => {
+                            let angle = 2.0 * core::f32::consts::PI * v.phase;
+                            angle.sin()
+                        }
+                        Waveform::Square => {
+                            if v.phase < 0.5 { 1.0 } else { -1.0 }
+                        }
+                        Waveform::Sawtooth => {
+                            2.0 * v.phase - 1.0
+                        }
+                        Waveform::Triangle => {
+                            if v.phase < 0.5 {
+                                4.0 * v.phase - 1.0
+                            } else {
+                                3.0 - 4.0 * v.phase
+                            }
+                        }
+                    };
+                    mix += sample * v.env;
                 }
             }
 
