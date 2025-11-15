@@ -98,7 +98,8 @@ with yours too.
 ## Software
 
 This repo contains Rust software that reads from the USB MIDI keyboard and
-outputs notes via the PCM5102.
+outputs notes via the PCM5102. You can also send MIDI controller events to
+modify the waveform, ADSR and filter.
 
 The default [synth code](./src/synth.rs) is pretty boring. It reads a buffer of
 incoming midi messages and outputs notes to an audio buffer. It should be pretty
@@ -135,7 +136,7 @@ gapless audio "out-of-the-box", so I had to
 [patch](https://github.com/Joeboy/embassy/tree/usb-mid-host-plus-pio-dma-ping-pong)
 it for those. Thanks to holly-hacker and dobrowolski-lukasz for doing the actual
 work. Fortunately it turns out it's easy to update the cargo deps to
-automatically use the patched branch, so I've done that now.
+automatically use crates from the patched branch, so I've done that now.
 
 ## The future / TODO
 
@@ -144,7 +145,6 @@ automatically use the patched branch, so I've done that now.
 - Provide a UF2 flash file. So far I've been using a debug probe to flash the
   device, I guess people might want to flash it without building all the Rust
   stuff
-- Use MIDI controllers to modify synth sounds
 
 ### Longer term / maybe sometime / maybe never
 
