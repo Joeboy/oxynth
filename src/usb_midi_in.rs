@@ -1,6 +1,6 @@
-use crate::synth::MidiEvent as SynthMidiEvent;
-
+use crate::synth::{MIDI_QUEUE_SIZE, MidiEvent as SynthMidiEvent};
 use defmt::*;
+use embassy_rp::Peri;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_usb::driver::host::DeviceEvent::Connected;
@@ -8,18 +8,17 @@ use embassy_usb::driver::host::UsbHostDriver;
 use embassy_usb::handlers::midi::{MidiEvent as UsbMidiEvent, MidiHandler};
 use embassy_usb::handlers::{HandlerEvent, UsbHostHandler};
 use embassy_usb::host::UsbHostBusExt;
+use heapless::spsc::Producer;
 use {defmt_rtt as _, panic_probe as _};
 
 bind_interrupts!(struct Irqs {
     USBCTRL_IRQ => embassy_rp::usb::host::InterruptHandler<USB>;
 });
 
-use embassy_rp::Peri;
-use heapless::spsc::Producer;
 #[embassy_executor::task]
 pub async fn usb_input_task(
     usb: Peri<'static, USB>,
-    mut prod: Producer<'static, SynthMidiEvent, 32>,
+    mut prod: Producer<'static, SynthMidiEvent, MIDI_QUEUE_SIZE>,
 ) -> ! {
     let mut usbhost = embassy_rp::usb::host::Driver::new(*usb, Irqs);
 
@@ -51,11 +50,22 @@ pub async fn usb_input_task(
                 let data1 = bytes[2];
                 let data2 = bytes[3];
 
-                let _ = prod.enqueue(SynthMidiEvent {
-                    status,
-                    data1,
-                    data2,
-                });
+                // Filter the MIDI events we care about, to avoid overflowing the queue
+                // Could also maybe consider rate limiting for continuous controls
+                let status_nybble = status & 0xF0;
+                match status_nybble {
+                    0xB0 | 0x90 | 0x80 => {
+                        // CC | Note On | Note Off
+                        let _ = prod.enqueue(SynthMidiEvent {
+                            status,
+                            data1,
+                            data2,
+                        });
+                    }
+                    _ => {
+                        debug!("Ignored MIDI status={:#X}", status);
+                    }
+                }
             }
             Ok(_) => {}
             Err(e) => {

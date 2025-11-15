@@ -5,12 +5,12 @@ use defmt::debug;
 use heapless::spsc::Queue;
 use static_cell::StaticCell;
 
-pub const MIDI_QUEUE_SIZE: usize = 32;
+pub const MIDI_QUEUE_SIZE: usize = 256;
 pub static MIDI_QUEUE: StaticCell<Queue<MidiEvent, MIDI_QUEUE_SIZE>> = StaticCell::new();
 
 const SAMPLE_RATE: u32 = 48_000;
 
-const N_VOICES: usize = 10;
+const N_VOICES: usize = 16;
 
 #[derive(Copy, Clone)]
 pub struct MidiEvent {
