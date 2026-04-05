@@ -6,10 +6,11 @@ use embassy_rp::peripherals::PIN_18;
 use embassy_rp::peripherals::PIN_19;
 use embassy_rp::peripherals::PIN_20;
 use embassy_rp::peripherals::PIO0;
-use embassy_rp::peripherals::{DMA_CH0, DMA_CH1, DMA_CH2};
+use embassy_rp::peripherals::{DMA_CH0, DMA_CH1};
 use embassy_rp::pio::{InterruptHandler, Pio};
-use embassy_rp::pio_programs::i2s::{PioI2sOut, PioI2sOutProgram};
 use {defmt_rtt as _, panic_probe as _};
+
+use crate::i2s_ping_pong::{PioI2sOut, PioI2sOutProgram};
 
 bind_interrupts!(struct Irqs {
     PIO0_IRQ_0 => InterruptHandler<PIO0>;
@@ -24,7 +25,6 @@ pub async fn audio_task(
     pio0: Peri<'static, PIO0>,
     dma_ch0: Peri<'static, DMA_CH0>,
     dma_ch1: Peri<'static, DMA_CH1>,
-    dma_ch2: Peri<'static, DMA_CH2>,
     pin18: Peri<'static, PIN_18>,
     pin19: Peri<'static, PIN_19>,
     pin20: Peri<'static, PIN_20>,
@@ -47,7 +47,6 @@ pub async fn audio_task(
     let mut i2s = PioI2sOut::new(
         &mut common,
         sm0,
-        dma_ch2, // <- use any different DMA channel than the ones used below
         data_pin,
         bit_clock_pin,
         left_right_clock_pin,

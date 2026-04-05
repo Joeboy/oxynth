@@ -2,6 +2,7 @@
 #![no_main]
 
 mod audio_out;
+mod i2s_ping_pong;
 mod synth;
 mod usb_midi_in;
 
@@ -42,7 +43,7 @@ fn main() -> ! {
             let executor1 = EXECUTOR1.init(Executor::new());
             executor1.run(|spawner| {
                 spawner.spawn(unwrap!(audio_task(
-                    p.PIO0, p.DMA_CH0, p.DMA_CH1, p.DMA_CH2, p.PIN_18, p.PIN_19, p.PIN_20, cons
+                    p.PIO0, p.DMA_CH0, p.DMA_CH1, p.PIN_18, p.PIN_19, p.PIN_20, cons
                 )))
             });
         },
