@@ -1201,6 +1201,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "oxynth-wamr"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "oxynthesizer"
 version = "0.1.0"
 dependencies = [
@@ -1228,6 +1235,7 @@ dependencies = [
  "heapless 0.8.0",
  "log",
  "micromath",
+ "oxynth-wamr",
  "panic-probe",
  "pio",
  "portable-atomic",

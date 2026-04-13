@@ -18,9 +18,9 @@ fn main() {
     // on the linker search path.
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
     File::create(out.join("memory.x"))
-        .unwrap()
+        .expect("create memory.x in OUT_DIR")
         .write_all(include_bytes!("memory.x"))
-        .unwrap();
+        .expect("write memory.x");
     println!("cargo:rustc-link-search={}", out.display());
 
     // By default, Cargo will re-run a build script whenever

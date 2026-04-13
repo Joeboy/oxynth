@@ -5,12 +5,15 @@ mod audio_out;
 mod i2s_ping_pong;
 mod synth;
 mod usb_midi_in;
+mod wasm_module;
 
 use audio_out::audio_task;
 use heapless::spsc::Queue;
 use static_cell::StaticCell;
 use synth::MIDI_QUEUE;
 use usb_midi_in::usb_input_task;
+use wasm_module::STARTUP_WASM;
+use oxynth_wamr::WasmRunner;
 
 use defmt::*;
 use embassy_executor::Executor;
@@ -30,6 +33,15 @@ fn main() -> ! {
     info!("Starting USB MIDI synth POC");
     let mut led = Output::new(p.PIN_25, Level::Low);
     led.set_high();
+
+    let mut wasm_runner = WasmRunner::new();
+    if wasm_runner.init() {
+        let startup_result = wasm_runner.run_startup(STARTUP_WASM);
+        info!("WASM startup run result: {}", startup_result);
+    }
+    else {
+        info!("WASM runtime init failed");
+    }
 
     // MIDI queue producer and consumer
     let queue = MIDI_QUEUE.init(Queue::new());
