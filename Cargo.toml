@@ -40,7 +40,7 @@ portable-atomic = { version = "1.5", features = ["critical-section"] }
 log = "0.4"
 micromath = "2.1.0"
 pio = "0.3"
-oxynth-wamr = { path = "oxynth-wamr" }
+wamr-rp2350 = { git = "https://github.com/Joeboy/wamr-rp2350.git", branch = "main" }
 
 [profile.release]
 # Enable generation of debug symbols even on release builds

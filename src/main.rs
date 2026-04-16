@@ -13,7 +13,7 @@ use static_cell::StaticCell;
 use synth::MIDI_QUEUE;
 use usb_midi_in::usb_input_task;
 use wasm_module::STARTUP_WASM;
-use oxynth_wamr::WasmRunner;
+use wamr_rp2350::WasmRunner;
 
 use defmt::*;
 use embassy_executor::Executor;

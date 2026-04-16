@@ -1201,13 +1201,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
-name = "oxynth-wamr"
-version = "0.1.0"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "oxynthesizer"
 version = "0.1.0"
 dependencies = [
@@ -1235,11 +1228,11 @@ dependencies = [
  "heapless 0.8.0",
  "log",
  "micromath",
- "oxynth-wamr",
  "panic-probe",
  "pio",
  "portable-atomic",
  "static_cell",
+ "wamr-rp2350",
 ]
 
 [[package]]
@@ -1958,6 +1951,14 @@ checksum = "29790946404f91d9c5d06f9874efddea1dc06c5efe94541a7d6863108e3a5e4b"
 dependencies = [
  "same-file",
  "winapi-util",
+]
+
+[[package]]
+name = "wamr-rp2350"
+version = "0.1.0"
+source = "git+https://github.com/Joeboy/wamr-rp2350.git?branch=main#a2f9fc39d1167bfa2be166bd989a886358bb592f"
+dependencies = [
+ "cc",
 ]
 
 [[package]]
