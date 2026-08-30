@@ -131,12 +131,13 @@ debug output, which will cause timing glitches. For "release mode", try
 
 I may well have forgotten things, in which case please file a github issue!
 
-Side note: A bit inconveniently, embassy-rs doesn't support host mode usb or
+~~Side note: A bit inconveniently, embassy-rs doesn't support host mode usb or
 gapless audio "out-of-the-box", so I had to
 [patch](https://github.com/Joeboy/embassy/tree/usb-mid-host-plus-pio-dma-ping-pong)
 it for those. Thanks to holly-hacker and dobrowolski-lukasz for doing the actual
 work. Fortunately it turns out it's easy to update the cargo deps to
-automatically use crates from the patched branch, so I've done that now.
+automatically use crates from the patched branch, so I've done that now.~~ Seems
+like it all works with mainline embassy now.
 
 ## The future / TODO
 
