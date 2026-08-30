@@ -126,27 +126,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "bt-hci"
-version = "0.8.0"
+name = "block-device-driver"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40f2166cc54c410ddc0d0dafb3cf8dd536bcbae6bddfcc12c020c5ee4de518de"
+checksum = "44c051592f59fe68053524b4c4935249b806f72c1f544cfb7abe4f57c3be258e"
 dependencies = [
- "btuuid",
- "defmt 1.0.1",
- "embassy-sync 0.7.2",
- "embedded-io 0.7.1",
- "embedded-io-async 0.7.0",
- "futures-intrusive",
- "heapless 0.9.2",
-]
-
-[[package]]
-name = "btuuid"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f5f48f1e9b0aad0a4f05d17bdeae0fa20ff798e272a03a6940ca27ad9c5a6ae7"
-dependencies = [
- "defmt 0.3.100",
+ "aligned",
 ]
 
 [[package]]
@@ -200,9 +185,9 @@ dependencies = [
 
 [[package]]
 name = "cordyceps"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "688d7fbb8092b8de775ef2536f36c8c31f2bc4006ece2e8d8ad2d17d00ce0a2a"
+checksum = "5b9ab7e0ca1d179628fa0172b2b97203c7fa0cd81be2448bd446fb9559ca9261"
 dependencies = [
  "loom",
  "tracing",
@@ -283,31 +268,33 @@ dependencies = [
 [[package]]
 name = "cyw43"
 version = "0.7.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "aligned",
- "bt-hci",
  "cortex-m",
  "cortex-m-rt",
  "defmt 1.0.1",
  "embassy-futures",
  "embassy-net-driver-channel",
- "embassy-sync 0.8.0",
+ "embassy-sync",
  "embassy-time",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
  "embedded-io-async 0.7.0",
  "futures",
  "heapless 0.9.2",
+ "sdio",
+ "trait-set",
 ]
 
 [[package]]
 name = "cyw43-pio"
 version = "0.10.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "cyw43",
  "defmt 1.0.1",
+ "embassy-futures",
  "embassy-rp",
  "fixed",
 ]
@@ -432,12 +419,12 @@ checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 [[package]]
 name = "embassy-embedded-hal"
 version = "0.6.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "defmt 1.0.1",
  "embassy-futures",
  "embassy-hal-internal",
- "embassy-sync 0.8.0",
+ "embassy-sync",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
@@ -449,7 +436,7 @@ dependencies = [
 [[package]]
 name = "embassy-executor"
 version = "0.10.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "cordyceps",
  "cortex-m",
@@ -458,12 +445,13 @@ dependencies = [
  "document-features",
  "embassy-executor-macros",
  "embassy-executor-timer-queue",
+ "unitrait",
 ]
 
 [[package]]
 name = "embassy-executor-macros"
 version = "0.8.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -473,18 +461,21 @@ dependencies = [
 
 [[package]]
 name = "embassy-executor-timer-queue"
-version = "0.1.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+version = "0.1.1"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
+dependencies = [
+ "unitrait",
+]
 
 [[package]]
 name = "embassy-futures"
 version = "0.1.2"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 
 [[package]]
 name = "embassy-hal-internal"
 version = "0.5.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "cortex-m",
  "critical-section",
@@ -493,24 +484,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "embassy-net-driver"
-version = "0.2.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
-
-[[package]]
 name = "embassy-net-driver-channel"
 version = "0.4.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "embassy-futures",
- "embassy-net-driver",
- "embassy-sync 0.8.0",
+ "embassy-sync",
+ "xarxa-driver",
 ]
 
 [[package]]
 name = "embassy-rp"
 version = "0.10.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "cfg-if",
  "chrono",
@@ -522,7 +508,7 @@ dependencies = [
  "embassy-embedded-hal",
  "embassy-futures",
  "embassy-hal-internal",
- "embassy-sync 0.8.0",
+ "embassy-sync",
  "embassy-time",
  "embassy-time-driver",
  "embassy-time-queue-utils",
@@ -545,27 +531,13 @@ dependencies = [
  "rp-pac",
  "rp2040-boot2",
  "sha2-const-stable",
- "smart-leds",
-]
-
-[[package]]
-name = "embassy-sync"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73974a3edbd0bd286759b3d483540f0ebef705919a5f56f4fc7709066f71689b"
-dependencies = [
- "cfg-if",
- "critical-section",
- "embedded-io-async 0.6.1",
- "futures-core",
- "futures-sink",
- "heapless 0.8.0",
+ "smart-leds-trait",
 ]
 
 [[package]]
 name = "embassy-sync"
 version = "0.8.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -579,7 +551,7 @@ dependencies = [
 [[package]]
 name = "embassy-time"
 version = "0.5.1"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "cfg-if",
  "critical-section",
@@ -595,15 +567,15 @@ dependencies = [
 [[package]]
 name = "embassy-time-driver"
 version = "0.2.2"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "document-features",
 ]
 
 [[package]]
 name = "embassy-time-queue-utils"
-version = "0.3.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+version = "0.3.2"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "embassy-executor-timer-queue",
  "heapless 0.9.2",
@@ -612,13 +584,13 @@ dependencies = [
 [[package]]
 name = "embassy-usb"
 version = "0.6.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "bitflags 2.11.0",
  "defmt 1.0.1",
  "embassy-futures",
  "embassy-net-driver-channel",
- "embassy-sync 0.8.0",
+ "embassy-sync",
  "embassy-time",
  "embassy-usb-driver",
  "embedded-io-async 0.7.0",
@@ -629,22 +601,23 @@ dependencies = [
 
 [[package]]
 name = "embassy-usb-driver"
-version = "0.2.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+version = "0.2.2"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
- "bitflags 2.11.0",
  "defmt 1.0.1",
+ "embedded-io-async 0.6.1",
  "embedded-io-async 0.7.0",
 ]
 
 [[package]]
 name = "embassy-usb-host"
 version = "0.1.0"
-source = "git+https://github.com/Joeboy/embassy.git?branch=midi-bulk-endpoints#549e75a70c1ed888de42f320e086948bc8ef4ccb"
+source = "git+https://github.com/embassy-rs/embassy#d66ac21e7e7ae0540e7225c3c1c52569b1292a87"
 dependencies = [
  "aligned",
  "bitflags 2.11.0",
  "defmt 1.0.1",
+ "embassy-sync",
  "embassy-time",
  "embassy-usb",
  "embassy-usb-driver",
@@ -787,6 +760,7 @@ checksum = "9af2cbf772fa6d1c11358f92ef554cb6b386201210bcf0e91fb7fba8a907fb40"
 dependencies = [
  "az",
  "bytemuck",
+ "defmt 1.0.1",
  "half",
  "typenum",
 ]
@@ -867,16 +841,6 @@ name = "futures-core"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e3450815272ef58cec6d564423f6e755e25379b217b0bc688e295ba24df6b1d"
-
-[[package]]
-name = "futures-intrusive"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d930c203dd0b6ff06e0201a4a2fe9149b43c684fd4420555b26d21b1a02956f"
-dependencies = [
- "futures-core",
- "lock_api",
-]
 
 [[package]]
 name = "futures-io"
@@ -1215,9 +1179,10 @@ dependencies = [
  "embassy-executor",
  "embassy-futures",
  "embassy-rp",
- "embassy-sync 0.8.0",
+ "embassy-sync",
  "embassy-time",
  "embassy-usb",
+ "embassy-usb-driver",
  "embassy-usb-host",
  "embedded-hal 1.0.0",
  "embedded-hal-async",
@@ -1563,6 +1528,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
+name = "sdio"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f7328e9dbad1337ef2d94a8404428a42d77a9916cda7c2e51287a1998da9afb"
+dependencies = [
+ "aligned",
+ "block-device-driver",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+]
+
+[[package]]
 name = "semver"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1648,15 +1625,6 @@ name = "smallvec"
 version = "1.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
-
-[[package]]
-name = "smart-leds"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66df34e571fa9993fa6f99131a374d58ca3d694b75f9baac93458fe0d6057bf0"
-dependencies = [
- "smart-leds-trait",
-]
 
 [[package]]
 name = "smart-leds-trait"
@@ -1841,6 +1809,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "trait-set"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b79e2e9c9ab44c6d7c20d5976961b47e8f49ac199154daa514b77cd1ab536625"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "typenum"
 version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1863,6 +1842,26 @@ name = "unicode-xid"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
+
+[[package]]
+name = "unitrait"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e1e3ee3aa62b245f34e2e52292a7dc2f97716f8d95f3ab384a6d9b19244ccdd"
+dependencies = [
+ "unitrait-macros",
+]
+
+[[package]]
+name = "unitrait-macros"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d0707a2f7725395e3c1a4ef68ba9c02b7253c9e8f45045d791bf2056e965ab14"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
 
 [[package]]
 name = "usb-device"
@@ -1983,6 +1982,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc"
 dependencies = [
  "windows-link",
+]
+
+[[package]]
+name = "xarxa-driver"
+version = "0.1.0"
+source = "git+https://github.com/embassy-rs/xarxa?rev=8e3d55c1c8351ee7728a0cbe3a504a4223c81488#8e3d55c1c8351ee7728a0cbe3a504a4223c81488"
+dependencies = [
+ "critical-section",
+ "document-features",
 ]
 
 [[package]]
