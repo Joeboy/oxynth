@@ -138,6 +138,14 @@ impl Synth {
                             self.filter_resonance = (cc_val as f32 / 127.0) * 4.0;
                             debug!("Filter resonance set to {}", self.filter_resonance);
                         }
+                        120 | 123 => {
+                            debug!("All Notes Off received, turning off all voices");
+                            for v in self.voices.iter_mut() {
+                                if v.gate {
+                                    v.note_off(self.release_time_s);
+                                }
+                            }
+                        }
                         _ => {}
                     }
                 }

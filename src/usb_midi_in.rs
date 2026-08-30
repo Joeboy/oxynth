@@ -1,10 +1,11 @@
 use crate::synth::{MIDI_QUEUE_SIZE, MidiEvent as SynthMidiEvent};
 use defmt::*;
+use embassy_futures::select::{Either, select};
 use embassy_rp::Peri;
 use embassy_rp::bind_interrupts;
 use embassy_rp::peripherals::USB;
 use embassy_usb_driver::host::pipe;
-use embassy_usb_driver::host::{PipeError, UsbHostAllocator, UsbPipe};
+use embassy_usb_driver::host::{DeviceEvent, PipeError, UsbHostAllocator, UsbPipe};
 use embassy_usb_driver::{Direction, EndpointInfo, EndpointType};
 use embassy_usb_host::descriptor::ConfigurationDescriptorChain;
 use embassy_usb_host::handler::{BusRoute, EnumerationInfo, RegisterError};
@@ -122,8 +123,8 @@ pub async fn usb_input_task(
         };
 
         loop {
-            match midi_device.wait_for_event().await {
-                Ok(MidiEvent::MidiPacket(pkt)) => {
+            match select(midi_device.wait_for_event(), controller.wait_for_device_event()).await {
+                Either::First(Ok(MidiEvent::MidiPacket(pkt))) => {
                     defmt::debug!("Received MIDI packet: {:?}", pkt);
                     let bytes: [u8; 4] = pkt.data;
                     let status = bytes[1];
@@ -147,12 +148,26 @@ pub async fn usb_input_task(
                         }
                     }
                 }
-                Err(error) => {
+                Either::First(Err(error)) => {
                     warn!("MIDI read error: {:?}", error);
                     break;
                 }
+                Either::Second(DeviceEvent::Disconnected) => {
+                    info!("USB device disconnected");
+                    break;
+                }
+                Either::Second(event) => {
+                    debug!("Other USB device event: {:?}", event);
+                }
             }
         }
+
+        // Send All Notes Off (CC 123) on disconnect to prevent stuck notes
+        let _ = prod.enqueue(SynthMidiEvent {
+            status: 0xB0,
+            data1: 123,
+            data2: 0,
+        });
 
         bus.free_address(enum_info.device_address);
     }
